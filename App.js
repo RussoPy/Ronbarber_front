@@ -8,6 +8,9 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { ref, onValue, set, remove, update } from 'firebase/database';
 import { database } from './firebaseConfig';
 import uuid from 'react-native-uuid';
+import { Swipeable } from 'react-native-gesture-handler';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
 
 const StyledButton = ({ title, onPress, color = '#5B2C6F' }) => (
   <TouchableOpacity onPress={onPress} style={[buttonStyles.button, { backgroundColor: color }]}>
@@ -92,6 +95,22 @@ export default function App() {
     remove(ref(database, `appointments/${dateKey}/${id}`));
   };
 
+  const duplicateNextWeek = (item) => {
+    const nextWeek = new Date(selectedDate);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    const nextDateKey = nextWeek.toISOString().split('T')[0];
+
+    const newId = uuid.v4();
+
+    set(ref(database, `appointments/${nextDateKey}/${newId}`), {
+      name: item.name,
+      phone: item.phone,
+      time: item.time
+    });
+
+    Alert.alert("✅ Added", `Appointment copied to ${nextDateKey}`);
+  };
+
   const sendWhatsAppReminders = () => {
     Alert.alert(
       "Send WhatsApp Messages",
@@ -134,24 +153,30 @@ export default function App() {
   );
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>📅 Barber Schedule</Text>
-
-      <View style={styles.dateRow}>
-        <Text style={styles.label}>Selected Day:</Text>
-        <StyledButton title={dateKey} onPress={() => setShowDatePicker(true)} />
-      </View>
-
-      {showDatePicker && (
-        <DateTimePicker
-          mode="date"
-          value={selectedDate}
-          onChange={(e, selected) => {
-            setShowDatePicker(false);
-            if (selected) setSelectedDate(selected);
-          }}
-        />
-      )}
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <View style={styles.container}>
+        <Text style={styles.header}>📅 Barber Schedule</Text>
+  
+        <View style={styles.dateRow}>
+          <Text style={styles.label}>Selected Day:</Text>
+          <StyledButton title={dateKey} onPress={() => setShowDatePicker(true)} />
+        </View>
+  
+        {showDatePicker && (
+          <DateTimePicker
+            mode="date"
+            value={selectedDate}
+            onChange={(e, selected) => {
+              setShowDatePicker(false);
+              if (selected) setSelectedDate(selected);
+            }}
+          />
+        )}
+  
+        {/* ...keep the rest of your layout here... */}
+     
+  );
+  
 
       <View style={styles.searchRow}>
         <StyledButton
@@ -210,24 +235,44 @@ export default function App() {
         data={appointments}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text style={styles.cardText}>
-              {item.time} — {item.name} {sentMessages[item.phone] && '✔️'}
-            </Text>
-            <Text style={styles.cardSub}>{item.phone}</Text>
-            <View style={styles.actions}>
-              <StyledButton title="Edit" onPress={() => editAppointmentTime(item.id)} color="#3498db" />
-              <StyledButton title="Delete" onPress={() => deleteAppointment(item.id)} color="#E74C3C" />
-              <StyledButton title="Send SMS" onPress={() => openSMS(item.phone, item.name, item.time)} color="#2ecc71" />
+          <Swipeable
+            renderRightActions={() => (
+              <TouchableOpacity
+                style={{
+                  backgroundColor: '#2ecc71',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  width: 100,
+                  borderTopRightRadius: 12,
+                  borderBottomRightRadius: 12,
+                }}
+                onPress={() => duplicateNextWeek(item)}
+              >
+                <Text style={{ color: 'white', fontWeight: 'bold' }}>➕ Next Week</Text>
+              </TouchableOpacity>
+            )}
+          >
+            <View style={styles.card}>
+              <Text style={styles.cardText}>
+                {item.time} — {item.name} {sentMessages[item.phone] && '✔️'}
+              </Text>
+              <Text style={styles.cardSub}>{item.phone}</Text>
+              <View style={styles.actions}>
+                <StyledButton title="Edit" onPress={() => editAppointmentTime(item.id)} color="#3498db" />
+                <StyledButton title="Delete" onPress={() => deleteAppointment(item.id)} color="#E74C3C" />
+                <StyledButton title="Send SMS" onPress={() => openSMS(item.phone, item.name, item.time)} color="#2ecc71" />
+              </View>
             </View>
-          </View>
+          </Swipeable>
         )}
       />
 
       <View style={{ marginTop: 30 }}>
         <StyledButton title="Send Messages" onPress={sendWhatsAppReminders} color="#5B2C6F" />
       </View>
-    </View>
+      </View>
+      </GestureHandlerRootView>
+    
   );
 }
 
