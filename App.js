@@ -201,7 +201,7 @@ export default function App() {
             <Text style={styles.cardText}>{item.time} — {item.name}</Text>
             <Text style={styles.cardSub}>{item.phone}</Text>
             <View style={styles.actions}>
-              <StyledButton title="t" onPress={() => editAppointmentTime(item.id)} color="#3498db" />
+              <StyledButton title="EDIT!" onPress={() => editAppointmentTime(item.id)} color="#3498db" />
               <StyledButton title="Delete" onPress={() => deleteAppointment(item.id)} color="#E74C3C" />
               <StyledButton title="Send SMS" onPress={() => openSMS(item.phone, item.name, item.time)} color="#2ecc71" />
             </View>
