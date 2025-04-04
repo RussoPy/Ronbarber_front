@@ -26,6 +26,7 @@ export default function App() {
   const [contactToSchedule, setContactToSchedule] = useState(null);
   const [appointmentTime, setAppointmentTime] = useState(new Date());
   const [editingAppointmentId, setEditingAppointmentId] = useState(null);
+  const [sentMessages, setSentMessages] = useState({});
 
   const dateKey = selectedDate.toISOString().split('T')[0];
 
@@ -91,27 +92,39 @@ export default function App() {
     remove(ref(database, `appointments/${dateKey}/${id}`));
   };
 
-  const sendWhatsAppReminders = async () => {
-    try {
-      const response = await fetch('https://ronbarber.onrender.com/send_messages');
-      if (response.ok) {
-        Alert.alert("✅ Success", "Reminders have been triggered!");
-      } else {
-        Alert.alert("❌ Error", "Failed to trigger reminders.");
-      }
-    } catch (error) {
-      console.error("Error sending reminders:", error);
-      Alert.alert("❌ Network Error", "Could not reach the server.");
-    }
+  const sendWhatsAppReminders = () => {
+    Alert.alert(
+      "Send WhatsApp Messages",
+      "Are you sure you want to send all reminders now?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Yes", onPress: async () => {
+            try {
+              const response = await fetch('https://ronbarber.onrender.com/send_messages');
+              if (response.ok) {
+                Alert.alert("✅ Success", "Reminders have been triggered!");
+              } else {
+                Alert.alert("❌ Error", "Failed to trigger reminders.");
+              }
+            } catch (error) {
+              console.error("Error sending reminders:", error);
+              Alert.alert("❌ Network Error", "Could not reach the server.");
+            }
+          }
+        }
+      ]
+    );
   };
-  
 
   const openSMS = (phone, name, time) => {
     const formattedPhone = phone.startsWith('+') ? phone : '+972' + phone.replace(/^0+/, '');
     const message = `שלום ${name}, תזכורת לתור שלך היום בשעה ${time}. תודה, רון הספר 💈`;
     const url = `sms:${formattedPhone}?body=${encodeURIComponent(message)}`;
 
-    Linking.openURL(url).catch(err =>
+    Linking.openURL(url).then(() => {
+      setSentMessages(prev => ({ ...prev, [phone]: true }));
+    }).catch(err =>
       Alert.alert('Error', 'Could not open SMS app.')
     );
   };
@@ -126,7 +139,7 @@ export default function App() {
 
       <View style={styles.dateRow}>
         <Text style={styles.label}>Selected Day:</Text>
-        <StyledButton title={dateKey} onPress={() => setShowDatePicker(true)} color="#5B2C6F" />
+        <StyledButton title={dateKey} onPress={() => setShowDatePicker(true)} />
       </View>
 
       {showDatePicker && (
@@ -198,10 +211,12 @@ export default function App() {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={styles.card}>
-            <Text style={styles.cardText}>{item.time} — {item.name}</Text>
+            <Text style={styles.cardText}>
+              {item.time} — {item.name} {sentMessages[item.phone] && '✔️'}
+            </Text>
             <Text style={styles.cardSub}>{item.phone}</Text>
             <View style={styles.actions}>
-              <StyledButton title="EDIT!" onPress={() => editAppointmentTime(item.id)} color="#3498db" />
+              <StyledButton title="Edit" onPress={() => editAppointmentTime(item.id)} color="#3498db" />
               <StyledButton title="Delete" onPress={() => deleteAppointment(item.id)} color="#E74C3C" />
               <StyledButton title="Send SMS" onPress={() => openSMS(item.phone, item.name, item.time)} color="#2ecc71" />
             </View>

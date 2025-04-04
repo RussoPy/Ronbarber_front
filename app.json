@@ -4,11 +4,11 @@
     "slug": "barber-reminder",
     "version": "1.0.1",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/icons.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/icons.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
