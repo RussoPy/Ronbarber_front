@@ -1,3 +1,4 @@
+// Original App.js (Restored + Better Card Layout Without Numbers)
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, FlatList, Alert, TouchableOpacity,
@@ -11,7 +12,7 @@ import uuid from 'react-native-uuid';
 import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
 
 const StyledButton = ({ title, onPress, color = '#5B2C6F' }) => (
-  <TouchableOpacity onPress={onPress} style={[buttonStyles.button, { backgroundColor: color }]}>
+  <TouchableOpacity onPress={onPress} style={[buttonStyles.button, { backgroundColor: color }]}> 
     <Text style={buttonStyles.text}>{title}</Text>
   </TouchableOpacity>
 );
@@ -33,7 +34,6 @@ export default function App() {
 
   const dateKey = selectedDate.toISOString().split('T')[0];
 
-  // 1. Load appointments for selected date
   useEffect(() => {
     const dbRef = ref(database, `appointments/${dateKey}`);
     const unsubscribe = onValue(dbRef, (snapshot) => {
@@ -45,24 +45,28 @@ export default function App() {
     return () => unsubscribe();
   }, [selectedDate]);
 
-  // ✅ 2. Set automatic trigger for today if not set
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
     const triggerRef = ref(database, 'trigger/send_whatsapp');
-
+  
     onValue(triggerRef, (snapshot) => {
       const data = snapshot.val();
+  
       if (!data || data.date !== today) {
         set(triggerRef, {
           date: today,
           send_now: true
         });
-        console.log(`✅ Trigger set for today: ${today}`);
-      } else {
-        console.log(`📌 Trigger already exists for today: ${data.date}`);
+      } else if (data.send_now === true) {
+        // Reset it to false to avoid repeat sending
+        set(triggerRef, {
+          date: data.date,
+          send_now: false
+        });
       }
     }, { onlyOnce: true });
   }, []);
+  
 
   const loadContacts = async () => {
     if (Platform.OS === 'web') {
@@ -88,6 +92,7 @@ export default function App() {
   const handleContactPress = (contact) => {
     setContactToSchedule(contact);
     setShowTimePicker(true);
+    setShowContacts(false);
   };
 
   const confirmTimeAndSave = () => {
@@ -281,9 +286,10 @@ export default function App() {
               )}
             >
               <View style={styles.card}>
-                <Text style={styles.cardText}>
-                  {item.time} — {item.name} {sentMessages[item.phone] && '✔️'}
-                </Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                  <Text style={styles.cardText}>{item.name}</Text>
+                  <Text style={styles.cardText}>{item.time}</Text>
+                </View>
                 <Text style={styles.cardSub}>{item.phone}</Text>
                 <View style={styles.actions}>
                   <StyledButton title="Edit" onPress={() => editAppointmentTime(item.id)} color="#3498db" />
