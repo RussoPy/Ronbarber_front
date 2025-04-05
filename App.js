@@ -33,6 +33,7 @@ export default function App() {
 
   const dateKey = selectedDate.toISOString().split('T')[0];
 
+  // 1. Load appointments for selected date
   useEffect(() => {
     const dbRef = ref(database, `appointments/${dateKey}`);
     const unsubscribe = onValue(dbRef, (snapshot) => {
@@ -43,6 +44,25 @@ export default function App() {
     });
     return () => unsubscribe();
   }, [selectedDate]);
+
+  // ✅ 2. Set automatic trigger for today if not set
+  useEffect(() => {
+    const today = new Date().toISOString().split('T')[0];
+    const triggerRef = ref(database, 'trigger/send_whatsapp');
+
+    onValue(triggerRef, (snapshot) => {
+      const data = snapshot.val();
+      if (!data || data.date !== today) {
+        set(triggerRef, {
+          date: today,
+          send_now: true
+        });
+        console.log(`✅ Trigger set for today: ${today}`);
+      } else {
+        console.log(`📌 Trigger already exists for today: ${data.date}`);
+      }
+    }, { onlyOnce: true });
+  }, []);
 
   const loadContacts = async () => {
     if (Platform.OS === 'web') {
@@ -121,26 +141,23 @@ export default function App() {
           text: "Yes", onPress: async () => {
             try {
               let successful = 0;
-              setTotalMessages(appointments.length);
               setSentCount(0);
-  
+              setTotalMessages(appointments.length);
+
               for (const appt of appointments) {
                 const response = await fetch(`https://ronbarber.onrender.com/send_single`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify(appt)
                 });
-  
+
                 if (response.ok) {
                   successful++;
-                  // OPTIONAL: if you want live updating
                   setSentCount(prev => prev + 1);
                 }
               }
-  
-              // FINAL COUNT (ensures it's accurate no matter what)
+
               setSentCount(successful);
-  
               Alert.alert("✅ Done", `${successful} of ${appointments.length} reminders sent!`);
             } catch (error) {
               console.error("Error sending:", error);
@@ -310,14 +327,14 @@ export default function App() {
 
 const styles = StyleSheet.create({
   container: { padding: 20, flex: 1, backgroundColor: '#FAF0E6' },
-  header: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', color: '#2C3E50', marginBottom: 25,marginTop:25 },
+  header: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', color: '#2C3E50', marginBottom: 25, marginTop: 25 },
   subHeader: { fontSize: 20, fontWeight: 'bold', marginTop: 20, color: '#2C3E50', marginBottom: 10 },
   label: { fontSize: 16, color: '#5B2C6F' },
   dateRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   searchRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   searchInput: { flex: 1, marginLeft: 10, borderBottomWidth: 2, borderColor: '#95A5A6', color: '#2C3E50' },
   list: { marginTop: 10 },
-  card: { backgroundColor: '#F0FFF0', padding: 14, borderRadius: 12, marginBottom: 12, elevation: 3 },
+  card: { backgroundColor: '#F7E7CE', padding: 14, borderRadius: 12, marginBottom: 12, elevation: 3 },
   cardText: { fontSize: 16, fontWeight: '600', color: '#2C3E50' },
   cardSub: { color: '#95A5A6', fontSize: 14 },
   actions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 }
@@ -327,4 +344,3 @@ const buttonStyles = StyleSheet.create({
   button: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 8, alignItems: 'center' },
   text: { color: '#fff', fontWeight: 'bold' }
 });
-
