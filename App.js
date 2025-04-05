@@ -8,9 +8,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { ref, onValue, set, remove, update } from 'firebase/database';
 import { database } from './firebaseConfig';
 import uuid from 'react-native-uuid';
-import { Swipeable } from 'react-native-gesture-handler';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-
+import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
 
 const StyledButton = ({ title, onPress, color = '#5B2C6F' }) => (
   <TouchableOpacity onPress={onPress} style={[buttonStyles.button, { backgroundColor: color }]}>
@@ -30,6 +28,8 @@ export default function App() {
   const [appointmentTime, setAppointmentTime] = useState(new Date());
   const [editingAppointmentId, setEditingAppointmentId] = useState(null);
   const [sentMessages, setSentMessages] = useState({});
+  const [sentCount, setSentCount] = useState(0);
+  const [totalMessages, setTotalMessages] = useState(0);
 
   const dateKey = selectedDate.toISOString().split('T')[0];
 
@@ -120,15 +120,31 @@ export default function App() {
         {
           text: "Yes", onPress: async () => {
             try {
-              const response = await fetch('https://ronbarber.onrender.com/send_messages');
-              if (response.ok) {
-                Alert.alert("✅ Success", "Reminders have been triggered!");
-              } else {
-                Alert.alert("❌ Error", "Failed to trigger reminders.");
+              let successful = 0;
+              setTotalMessages(appointments.length);
+              setSentCount(0);
+  
+              for (const appt of appointments) {
+                const response = await fetch(`https://ronbarber.onrender.com/send_single`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(appt)
+                });
+  
+                if (response.ok) {
+                  successful++;
+                  // OPTIONAL: if you want live updating
+                  setSentCount(prev => prev + 1);
+                }
               }
+  
+              // FINAL COUNT (ensures it's accurate no matter what)
+              setSentCount(successful);
+  
+              Alert.alert("✅ Done", `${successful} of ${appointments.length} reminders sent!`);
             } catch (error) {
-              console.error("Error sending reminders:", error);
-              Alert.alert("❌ Network Error", "Could not reach the server.");
+              console.error("Error sending:", error);
+              Alert.alert("❌ Error", "Could not send reminders.");
             }
           }
         }
@@ -155,13 +171,13 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={styles.container}>
-        <Text style={styles.header}>📅 Barber Schedule</Text>
-  
+        <Text style={styles.header}>📅 Schedule</Text>
+
         <View style={styles.dateRow}>
           <Text style={styles.label}>Selected Day:</Text>
           <StyledButton title={dateKey} onPress={() => setShowDatePicker(true)} />
         </View>
-  
+
         {showDatePicker && (
           <DateTimePicker
             mode="date"
@@ -172,120 +188,136 @@ export default function App() {
             }}
           />
         )}
-  
-        {/* ...keep the rest of your layout here... */}
-     
-  );
-  
 
-      <View style={styles.searchRow}>
-        <StyledButton
-          title={showContacts ? "Hide Contacts" : "Load Contacts"}
-          onPress={() => showContacts ? setShowContacts(false) : loadContacts()}
-          color="#2ecc71"
-        />
-        <TextInput
-          placeholder="Search contact"
-          value={searchTerm}
-          onChangeText={setSearchTerm}
-          style={styles.searchInput}
-        />
-      </View>
+        <View style={styles.searchRow}>
+          <StyledButton
+            title={showContacts ? "Hide Contacts" : "Load Contacts"}
+            onPress={() => showContacts ? setShowContacts(false) : loadContacts()}
+            color="#2ecc71"
+          />
+          <TextInput
+            placeholder="Search contact"
+            value={searchTerm}
+            onChangeText={setSearchTerm}
+            style={styles.searchInput}
+          />
+        </View>
 
-      {showContacts && (
-        <FlatList
-          data={filteredContacts}
-          keyExtractor={(item) => item.id}
-          style={styles.list}
-          renderItem={({ item }) => (
-            <TouchableOpacity style={styles.card} onPress={() => handleContactPress(item)}>
-              <Text style={styles.cardText}>{item.name}</Text>
-              <Text style={styles.cardSub}>{item.phoneNumbers[0].number}</Text>
-            </TouchableOpacity>
-          )}
-        />
-      )}
-
-      {showTimePicker && (
-        <DateTimePicker
-          mode="time"
-          is24Hour
-          value={appointmentTime}
-          onChange={(e, selected) => {
-            if (selected) {
-              setAppointmentTime(selected);
-              if (editingAppointmentId) {
-                update(ref(database, `appointments/${dateKey}/${editingAppointmentId}`), {
-                  time: selected.toTimeString().slice(0, 5)
-                });
-                setEditingAppointmentId(null);
-              } else {
-                confirmTimeAndSave();
-              }
-              setShowTimePicker(false);
-            } else {
-              setShowTimePicker(false);
-            }
-          }}
-        />
-      )}
-
-      <Text style={styles.subHeader}>📋 Appointments ({appointments.length})</Text>
-      <FlatList
-        data={appointments}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <Swipeable
-            renderRightActions={() => (
-              <TouchableOpacity
-                style={{
-                  backgroundColor: '#2ecc71',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  width: 100,
-                  borderTopRightRadius: 12,
-                  borderBottomRightRadius: 12,
-                }}
-                onPress={() => duplicateNextWeek(item)}
-              >
-                <Text style={{ color: 'white', fontWeight: 'bold' }}>➕ Next Week</Text>
+        {showContacts && (
+          <FlatList
+            data={filteredContacts}
+            keyExtractor={(item) => item.id}
+            style={styles.list}
+            renderItem={({ item }) => (
+              <TouchableOpacity style={styles.card} onPress={() => handleContactPress(item)}>
+                <Text style={styles.cardText}>{item.name}</Text>
+                <Text style={styles.cardSub}>{item.phoneNumbers[0].number}</Text>
               </TouchableOpacity>
             )}
-          >
-            <View style={styles.card}>
-              <Text style={styles.cardText}>
-                {item.time} — {item.name} {sentMessages[item.phone] && '✔️'}
-              </Text>
-              <Text style={styles.cardSub}>{item.phone}</Text>
-              <View style={styles.actions}>
-                <StyledButton title="Edit" onPress={() => editAppointmentTime(item.id)} color="#3498db" />
-                <StyledButton title="Delete" onPress={() => deleteAppointment(item.id)} color="#E74C3C" />
-                <StyledButton title="Send SMS" onPress={() => openSMS(item.phone, item.name, item.time)} color="#2ecc71" />
-              </View>
-            </View>
-          </Swipeable>
+          />
         )}
-      />
 
-      <View style={{ marginTop: 30 }}>
-        <StyledButton title="Send Messages" onPress={sendWhatsAppReminders} color="#5B2C6F" />
+        {showTimePicker && (
+          <DateTimePicker
+            mode="time"
+            is24Hour
+            value={appointmentTime}
+            onChange={(e, selected) => {
+              if (selected) {
+                setAppointmentTime(selected);
+                if (editingAppointmentId) {
+                  update(ref(database, `appointments/${dateKey}/${editingAppointmentId}`), {
+                    time: selected.toTimeString().slice(0, 5)
+                  });
+                  setEditingAppointmentId(null);
+                } else {
+                  confirmTimeAndSave();
+                }
+                setShowTimePicker(false);
+              } else {
+                setShowTimePicker(false);
+              }
+            }}
+          />
+        )}
+
+        <Text style={styles.subHeader}>📋 Appointments ({appointments.length})</Text>
+        <FlatList
+          data={appointments}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <Swipeable
+              renderRightActions={() => (
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: '#2ecc71',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    width: 100,
+                    borderTopRightRadius: 12,
+                    borderBottomRightRadius: 12,
+                  }}
+                  onPress={() => duplicateNextWeek(item)}
+                >
+                  <Text style={{ color: 'white', fontWeight: 'bold' }}>➕ Next Week</Text>
+                </TouchableOpacity>
+              )}
+            >
+              <View style={styles.card}>
+                <Text style={styles.cardText}>
+                  {item.time} — {item.name} {sentMessages[item.phone] && '✔️'}
+                </Text>
+                <Text style={styles.cardSub}>{item.phone}</Text>
+                <View style={styles.actions}>
+                  <StyledButton title="Edit" onPress={() => editAppointmentTime(item.id)} color="#3498db" />
+                  <StyledButton title="Delete" onPress={() => deleteAppointment(item.id)} color="#E74C3C" />
+                  <StyledButton title="Send SMS" onPress={() => openSMS(item.phone, item.name, item.time)} color="#2ecc71" />
+                </View>
+              </View>
+            </Swipeable>
+          )}
+        />
+
+        {totalMessages > 0 && (
+          <View style={{ marginVertical: 10, alignItems: 'center' }}>
+            <Text style={{ fontSize: 16, color: '#2C3E50', fontWeight: 'bold' }}>
+              {sentCount} / {totalMessages} messages sent...
+            </Text>
+            <View style={{
+              width: '100%',
+              height: 10,
+              backgroundColor: '#ddd',
+              borderRadius: 5,
+              marginTop: 5,
+              overflow: 'hidden'
+            }}>
+              <View style={{
+                width: `${(sentCount / totalMessages) * 100}%`,
+                height: '100%',
+                backgroundColor: '#5B2C6F'
+              }} />
+            </View>
+          </View>
+        )}
+
+        <View style={{ marginTop: 30 }}>
+          <StyledButton title="Send Messages" onPress={sendWhatsAppReminders} color="#5B2C6F" />
+        </View>
       </View>
-      </View>
-      </GestureHandlerRootView>
-    
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 20, flex: 1, backgroundColor: '#F4F1FB' },
-  header: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', color: '#2C3E50', marginBottom: 15 },
+  container: { padding: 20, flex: 1, backgroundColor: '#FAF0E6' },
+  header: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', color: '#2C3E50', marginBottom: 25,marginTop:25 },
   subHeader: { fontSize: 20, fontWeight: 'bold', marginTop: 20, color: '#2C3E50', marginBottom: 10 },
   label: { fontSize: 16, color: '#5B2C6F' },
   dateRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   searchRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   searchInput: { flex: 1, marginLeft: 10, borderBottomWidth: 2, borderColor: '#95A5A6', color: '#2C3E50' },
   list: { marginTop: 10 },
-  card: { backgroundColor: '#FFFFFF', padding: 14, borderRadius: 12, marginBottom: 12, elevation: 3 },
+  card: { backgroundColor: '#F0FFF0', padding: 14, borderRadius: 12, marginBottom: 12, elevation: 3 },
   cardText: { fontSize: 16, fontWeight: '600', color: '#2C3E50' },
   cardSub: { color: '#95A5A6', fontSize: 14 },
   actions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 }
@@ -295,3 +327,4 @@ const buttonStyles = StyleSheet.create({
   button: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 8, alignItems: 'center' },
   text: { color: '#fff', fontWeight: 'bold' }
 });
+
