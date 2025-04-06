@@ -224,16 +224,16 @@ export default function BarberApp({ user, username }) {
 
         {showContacts && (
           <FlatList
-            data={filteredContacts}
-            keyExtractor={(item) => item.id}
-            style={styles.list}
-            renderItem={({ item }) => (
-              <TouchableOpacity style={styles.card} onPress={() => handleContactPress(item)}>
-                <Text style={styles.cardText}>{item.name}</Text>
-                <Text style={styles.cardSub}>{item.phoneNumbers[0].number}</Text>
-              </TouchableOpacity>
-            )}
-          />
+          data={filteredContacts}
+          keyExtractor={(item) => item.id}
+          style={styles.list}
+          renderItem={({ item }) => (
+            <TouchableOpacity style={styles.card} onPress={() => handleContactPress(item)}>
+              <Text style={styles.cardText}>{item.name}</Text>
+              <Text style={styles.cardSub}>{item.phoneNumbers[0].number}</Text>
+            </TouchableOpacity>
+          )}
+        />
         )}
 
         {showTimePicker && (
@@ -328,7 +328,9 @@ export default function BarberApp({ user, username }) {
   );
 }
 
+
 const styles = StyleSheet.create({
+  
   container: { padding: 20, flex: 1, backgroundColor: '#FAF0E6' },
   header: { fontSize: 24, fontWeight: 'bold', textAlign: 'left', color: '#2C3E50', marginBottom: 25, marginTop: 25 },
   subHeader: { fontSize: 20, fontWeight: 'bold', marginTop: 20, color: '#2C3E50', marginBottom: 10 },
