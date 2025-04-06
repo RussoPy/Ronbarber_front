@@ -3,6 +3,7 @@
     "name": "barber-reminder",
     "slug": "barber-reminder",
     "version": "1.0.1",
+    "entryPoint": "./index.js",
     "orientation": "portrait",
     "icon": "./assets/icons.png",
     "userInterfaceStyle": "light",
