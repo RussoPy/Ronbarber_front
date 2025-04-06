@@ -46,6 +46,16 @@ export default function BarberApp({ user, username }) {
   const dateKey = selectedDate.toISOString().split('T')[0];
 
   useEffect(() => {
+    const infoRef = ref(database, `users/${user.uid}/info`);
+    onValue(infoRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data && data.name) {
+        Alert.alert("👋 Welcome", `Hello ${data.name}!`);
+      }
+    }, { onlyOnce: true });
+  }, []);
+
+  useEffect(() => {
     const dbRef = ref(database, `appointments/${user.uid}/${dateKey}`);
     const unsubscribe = onValue(dbRef, (snapshot) => {
       const data = snapshot.val() || {};
@@ -165,7 +175,7 @@ export default function BarberApp({ user, username }) {
       ]
     );
   };
-  
+
   const actuallySendMessages = async () => {
     try {
       const response = await fetch("https://barber-back-ng32.onrender.com/send_messages", {
@@ -173,7 +183,7 @@ export default function BarberApp({ user, username }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ uid: user.uid, date: dateKey }),
       });
-  
+
       const result = await response.json();
       if (response.ok) {
         setSentCount(result.sent || 0);
@@ -186,7 +196,7 @@ export default function BarberApp({ user, username }) {
       Alert.alert("❌ Error", "Could not connect to server.");
     }
   };
-  
+
 
   const openSMS = (phone, name, time) => {
     const formattedPhone = phone.startsWith('+') ? phone : '+972' + phone.replace(/^0+/, '');
@@ -322,9 +332,7 @@ export default function BarberApp({ user, username }) {
                     <StyledButton title="Send SMS" onPress={() => openSMS(item.phone, item.name, item.time)} color="#2ecc71" />
                   </View>
                 )}
-              </View>  {/* ✅ This must close the card no matter what */}
-
-
+              </View>
             </Swipeable>
           )}
         />

@@ -16,17 +16,30 @@ export default function MainApp() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
+  
       if (user) {
         const nameRef = ref(database, `users/${user.uid}/name`);
         onValue(nameRef, (snapshot) => {
           const name = snapshot.val();
           if (name) setUsername(name);
         });
+  
+        // ✅ Auto-logout if user is deleted from Firebase DB
+        const infoRef = ref(database, `users/${user.uid}/info`);
+        onValue(infoRef, (snapshot) => {
+          if (!snapshot.exists()) {
+            Alert.alert("🚫 Account Removed", "Your account was deleted.");
+            auth.signOut();
+          }
+        });
       }
+  
       if (initializing) setInitializing(false);
     });
+  
     return () => unsubscribe();
   }, []);
+  
 
   if (initializing) {
     return (
