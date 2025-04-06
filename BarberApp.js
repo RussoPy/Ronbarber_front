@@ -40,6 +40,8 @@ export default function BarberApp({ user, username }) {
   const [sentMessages, setSentMessages] = useState({});
   const [sentCount, setSentCount] = useState(0);
   const [totalMessages, setTotalMessages] = useState(0);
+  const [isDayLocked, setIsDayLocked] = useState(false);
+
 
   const dateKey = selectedDate.toISOString().split('T')[0];
 
@@ -50,6 +52,9 @@ export default function BarberApp({ user, username }) {
       const list = Object.entries(data).map(([id, val]) => ({ id, ...val }));
       const sortedList = list.sort((a, b) => a.time.localeCompare(b.time));
       setAppointments(sortedList);
+
+      const alreadySent = Object.values(data).some(appt => appt.sent);
+      setIsDayLocked(alreadySent);
     });
     return () => unsubscribe();
   }, [selectedDate, user.uid]);
@@ -137,29 +142,51 @@ export default function BarberApp({ user, username }) {
         {
           text: "Send",
           onPress: async () => {
-            try {
-              const response = await fetch("https://barber-back-ng32.onrender.com/send_messages", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ uid: user.uid, date: dateKey }),
-              });
-  
-              const result = await response.json();
-              if (response.ok) {
-                setSentCount(result.sent || 0);
-                setTotalMessages(result.total || 0);
-                Alert.alert("✅ Done", result.message);
-              } else {
-                Alert.alert("❌ Error", result.error || "Failed to send.");
-              }
-            } catch (error) {
-              Alert.alert("❌ Error", "Could not connect to server.");
+            if (isDayLocked) {
+              Alert.alert(
+                "⚠️ Are you sure?",
+                "Messages were already sent for this day. Sending again will resend SMS to the same people.",
+                [
+                  { text: "Cancel", style: "cancel" },
+                  {
+                    text: "Send Anyway",
+                    onPress: async () => {
+                      await actuallySendMessages();
+                    },
+                    style: "destructive"
+                  }
+                ]
+              );
+            } else {
+              await actuallySendMessages();
             }
           }
         }
       ]
     );
   };
+  
+  const actuallySendMessages = async () => {
+    try {
+      const response = await fetch("https://barber-back-ng32.onrender.com/send_messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid: user.uid, date: dateKey }),
+      });
+  
+      const result = await response.json();
+      if (response.ok) {
+        setSentCount(result.sent || 0);
+        setTotalMessages(result.total || 0);
+        Alert.alert("✅ Done", result.message);
+      } else {
+        Alert.alert("❌ Error", result.error || "Failed to send.");
+      }
+    } catch (error) {
+      Alert.alert("❌ Error", "Could not connect to server.");
+    }
+  };
+  
 
   const openSMS = (phone, name, time) => {
     const formattedPhone = phone.startsWith('+') ? phone : '+972' + phone.replace(/^0+/, '');
@@ -248,6 +275,18 @@ export default function BarberApp({ user, username }) {
         )}
 
         <Text style={styles.subHeader}>📋 Appointments ({appointments.length})</Text>
+        {isDayLocked && (
+          <View style={{ marginVertical: 10, padding: 10, backgroundColor: '#fff3cd', borderRadius: 8 }}>
+            <Text style={{ color: '#856404' }}>
+              🔒 This day's list is locked because messages were already sent.
+            </Text>
+            <StyledButton
+              title="Unlock Editing"
+              onPress={() => setIsDayLocked(false)}
+              color="#f39c12"
+            />
+          </View>
+        )}
         <FlatList
           data={appointments}
           keyExtractor={(item) => item.id}
@@ -269,18 +308,23 @@ export default function BarberApp({ user, username }) {
                 </TouchableOpacity>
               )}
             >
-              <View style={styles.card}>
+              <View style={[styles.card, item.sent && { backgroundColor: '#D0F0C0' }]}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                   <Text style={styles.cardText}>{item.name}</Text>
                   <Text style={styles.cardText}>{item.time}</Text>
                 </View>
                 <Text style={styles.cardSub}>{item.phone}</Text>
-                <View style={styles.actions}>
-                  <StyledButton title="Edit" onPress={() => editAppointmentTime(item.id)} color="#3498db" />
-                  <StyledButton title="Delete" onPress={() => deleteAppointment(item.id)} color="#E74C3C" />
-                  <StyledButton title="Send SMS" onPress={() => openSMS(item.phone, item.name, item.time)} color="#2ecc71" />
-                </View>
-              </View>
+
+                {!isDayLocked && (
+                  <View style={styles.actions}>
+                    <StyledButton title="Edit" onPress={() => editAppointmentTime(item.id)} color="#3498db" />
+                    <StyledButton title="Delete" onPress={() => deleteAppointment(item.id)} color="#E74C3C" />
+                    <StyledButton title="Send SMS" onPress={() => openSMS(item.phone, item.name, item.time)} color="#2ecc71" />
+                  </View>
+                )}
+              </View>  {/* ✅ This must close the card no matter what */}
+
+
             </Swipeable>
           )}
         />
