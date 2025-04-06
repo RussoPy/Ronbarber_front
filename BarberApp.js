@@ -1,4 +1,4 @@
-// BarberApp.js - Modified to Support Per-User Data and Dynamic Header
+// BarberApp.js - Modified to normalize phone numbers before saving
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, FlatList, Alert, TouchableOpacity,
@@ -12,10 +12,19 @@ import uuid from 'react-native-uuid';
 import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
 
 const StyledButton = ({ title, onPress, color = '#5B2C6F' }) => (
-  <TouchableOpacity onPress={onPress} style={[buttonStyles.button, { backgroundColor: color }]}> 
+  <TouchableOpacity onPress={onPress} style={[buttonStyles.button, { backgroundColor: color }]}>
     <Text style={buttonStyles.text}>{title}</Text>
   </TouchableOpacity>
 );
+
+// ✅ Normalize Israeli phone numbers to E.164 format
+const normalizePhone = (phone) => {
+  if (!phone) return "";
+  const cleaned = phone.replace(/[^0-9+]/g, ""); // Remove all non-digits and keep +
+  if (cleaned.startsWith("+")) return cleaned;
+  if (cleaned.startsWith("0")) return "+972" + cleaned.slice(1);
+  return "+972" + cleaned; // Fallback
+};
 
 export default function BarberApp({ user, username }) {
   const [contacts, setContacts] = useState([]);
@@ -48,20 +57,12 @@ export default function BarberApp({ user, username }) {
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
     const triggerRef = ref(database, `trigger/${user.uid}/send_whatsapp`);
-
     onValue(triggerRef, (snapshot) => {
       const data = snapshot.val();
-
       if (!data || data.date !== today) {
-        set(triggerRef, {
-          date: today,
-          send_now: true
-        });
+        set(triggerRef, { date: today, send_now: true });
       } else if (data.send_now === true) {
-        set(triggerRef, {
-          date: data.date,
-          send_now: false
-        });
+        set(triggerRef, { date: data.date, send_now: false });
       }
     }, { onlyOnce: true });
   }, [user.uid]);
@@ -71,17 +72,14 @@ export default function BarberApp({ user, username }) {
       alert("Contact access not supported on web.");
       return;
     }
-
     const { status } = await Contacts.requestPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert("Permission denied", "Enable contacts permission.");
       return;
     }
-
     const { data } = await Contacts.getContactsAsync({
       fields: [Contacts.Fields.PhoneNumbers],
     });
-
     const filtered = data.filter(c => c.phoneNumbers?.length > 0);
     setContacts(filtered);
     setShowContacts(true);
@@ -95,15 +93,14 @@ export default function BarberApp({ user, username }) {
 
   const confirmTimeAndSave = () => {
     const id = uuid.v4();
-    const cleanPhone = contactToSchedule.phoneNumbers[0].number.replace(/\s|-/g, '');
+    const rawPhone = contactToSchedule.phoneNumbers[0].number;
+    const cleanPhone = normalizePhone(rawPhone);
     const timeStr = appointmentTime.toTimeString().slice(0, 5);
-
     set(ref(database, `appointments/${user.uid}/${dateKey}/${id}`), {
       name: contactToSchedule.name,
       phone: cleanPhone,
       time: timeStr
     });
-
     setShowTimePicker(false);
     setContactToSchedule(null);
     setAppointmentTime(new Date());
@@ -123,47 +120,40 @@ export default function BarberApp({ user, username }) {
     nextWeek.setDate(nextWeek.getDate() + 7);
     const nextDateKey = nextWeek.toISOString().split('T')[0];
     const newId = uuid.v4();
-
     set(ref(database, `appointments/${user.uid}/${nextDateKey}/${newId}`), {
       name: item.name,
       phone: item.phone,
       time: item.time
     });
-
     Alert.alert("✅ Added", `Appointment copied to ${nextDateKey}`);
   };
 
   const sendWhatsAppReminders = () => {
     Alert.alert(
-      "Send WhatsApp Messages",
-      "Are you sure you want to send all reminders now?",
+      "Send Messages",
+      `Send reminders for ${dateKey}?`,
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Yes", onPress: async () => {
+          text: "Send",
+          onPress: async () => {
             try {
-              let successful = 0;
-              setSentCount(0);
-              setTotalMessages(appointments.length);
-
-              for (const appt of appointments) {
-                const response = await fetch(`https://ronbarber.onrender.com/send_single`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(appt)
-                });
-
-                if (response.ok) {
-                  successful++;
-                  setSentCount(prev => prev + 1);
-                }
+              const response = await fetch("https://barber-back-ng32.onrender.com/send_messages", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ uid: user.uid, date: dateKey }),
+              });
+  
+              const result = await response.json();
+              if (response.ok) {
+                setSentCount(result.sent || 0);
+                setTotalMessages(result.total || 0);
+                Alert.alert("✅ Done", result.message);
+              } else {
+                Alert.alert("❌ Error", result.error || "Failed to send.");
               }
-
-              setSentCount(successful);
-              Alert.alert("✅ Done", `${successful} of ${appointments.length} reminders sent!`);
             } catch (error) {
-              console.error("Error sending:", error);
-              Alert.alert("❌ Error", "Could not send reminders.");
+              Alert.alert("❌ Error", "Could not connect to server.");
             }
           }
         }
@@ -175,12 +165,9 @@ export default function BarberApp({ user, username }) {
     const formattedPhone = phone.startsWith('+') ? phone : '+972' + phone.replace(/^0+/, '');
     const message = `שלום ${name}, תזכורת לתור שלך היום בשעה ${time}. תודה, רון הספר 💈`;
     const url = `sms:${formattedPhone}?body=${encodeURIComponent(message)}`;
-
     Linking.openURL(url).then(() => {
       setSentMessages(prev => ({ ...prev, [phone]: true }));
-    }).catch(err =>
-      Alert.alert('Error', 'Could not open SMS app.')
-    );
+    }).catch(err => Alert.alert('Error', 'Could not open SMS app.'));
   };
 
   const filteredContacts = contacts.filter(c =>
@@ -224,16 +211,16 @@ export default function BarberApp({ user, username }) {
 
         {showContacts && (
           <FlatList
-          data={filteredContacts}
-          keyExtractor={(item) => item.id}
-          style={styles.list}
-          renderItem={({ item }) => (
-            <TouchableOpacity style={styles.card} onPress={() => handleContactPress(item)}>
-              <Text style={styles.cardText}>{item.name}</Text>
-              <Text style={styles.cardSub}>{item.phoneNumbers[0].number}</Text>
-            </TouchableOpacity>
-          )}
-        />
+            data={filteredContacts}
+            keyExtractor={(item) => item.id}
+            style={styles.list}
+            renderItem={({ item }) => (
+              <TouchableOpacity style={styles.card} onPress={() => handleContactPress(item)}>
+                <Text style={styles.cardText}>{item.name}</Text>
+                <Text style={styles.cardSub}>{item.phoneNumbers[0].number}</Text>
+              </TouchableOpacity>
+            )}
+          />
         )}
 
         {showTimePicker && (
@@ -328,9 +315,7 @@ export default function BarberApp({ user, username }) {
   );
 }
 
-
 const styles = StyleSheet.create({
-  
   container: { padding: 20, flex: 1, backgroundColor: '#FAF0E6' },
   header: { fontSize: 24, fontWeight: 'bold', textAlign: 'left', color: '#2C3E50', marginBottom: 25, marginTop: 25 },
   subHeader: { fontSize: 20, fontWeight: 'bold', marginTop: 20, color: '#2C3E50', marginBottom: 10 },
