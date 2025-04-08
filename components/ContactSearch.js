@@ -27,7 +27,7 @@ export default function ContactSearch({
       <View style={styles.row}>
         <TouchableOpacity
           onPress={() => showContacts ? onHide() : loadContacts()}
-          style={[styles.button, { backgroundColor: '#8b499c' }]}
+          style={[styles.button, { backgroundColor: '#1f1e1d' }]}
         >
           <Text style={styles.buttonText}>
             {showContacts ? "Hide Contacts" : "Load Contacts"}

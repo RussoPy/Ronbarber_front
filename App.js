@@ -1,10 +1,7 @@
-// App.js
+import 'react-native-gesture-handler';  // Make sure this is the very first import
 import React, { useEffect, useState } from 'react';
-import {
-  View, Text, TextInput, Alert, StyleSheet,
-  TouchableOpacity, ActivityIndicator
-} from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { View, Text, TextInput, Alert, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler'; // Import GestureHandlerRootView
 import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import { ref, set } from 'firebase/database';
 import { auth, database } from './firebaseConfig';
@@ -90,7 +87,7 @@ export default function App() {
 
   if (!user) {
     return (
-      <GestureHandlerRootView style={styles.container}>
+      <GestureHandlerRootView style={styles.container}>  {/* Wrap everything in GestureHandlerRootView */}
         <Text style={styles.title}>{isRegistering ? "Register" : "Login"}</Text>
 
         <TextInput
@@ -139,7 +136,7 @@ export default function App() {
 
         {/* ✅ Remember Me Custom Checkbox */}
         <TouchableOpacity onPress={() => setRememberMe(!rememberMe)} style={styles.checkboxContainer}>
-        <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]} />
+          <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]} />
           <Text style={styles.checkboxLabel}>Remember Me</Text>
         </TouchableOpacity>
 
@@ -181,4 +178,4 @@ const styles = StyleSheet.create({
     backgroundColor: '#5B2C6F',
   },
   checkboxLabel: { color: '#2C3E50' },
-});
+});  

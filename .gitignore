@@ -4,6 +4,8 @@
 firebase.json
 credentials.json
 serviceAccountKey.json
+firebaseConfig.js
+
 
 # 📦 Dependencies
 node_modules/
