@@ -187,7 +187,11 @@ export default function BarberApp({ user, username }) {
       const response = await fetch("https://barber-back-ng32.onrender.com/send_messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uid: user.uid, date: dateKey }),
+        body: JSON.stringify({
+          uid: user.uid,
+          date: dateKey,
+          template: messageTemplate
+        }),
       });
       const result = await response.json();
       if (response.ok) {
