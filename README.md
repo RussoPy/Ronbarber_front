@@ -11,9 +11,9 @@ This is a custom React Native + Firebase app built for barbers and hairstylists 
 - 🔒 Lock appointments after sending messages to prevent edits
 - ✅ Send WhatsApp or SMS reminders to each client with a personalized message template
 - 🧠 Auto-sorting appointments by time
-- 💬 Dynamic message preview and custom template editing (e.g. use `{{name}}`, `{{time}}`, `{{barber}}`)
+- 💬 Dynamic message preview and custom template editing
 - 🧾 Track how many messages were sent (X/Y)
-- 🖼️ Modern and mobile-friendly UI with Tailwind-style design (via `tailwind-rn`)
+- 🖼️ Modern and mobile-friendly UI with Tailwind-style design 
 
 ## 🔧 Technologies Used
 
@@ -31,13 +31,6 @@ This is a custom React Native + Firebase app built for barbers and hairstylists 
 - Swipe on any client to quickly add the same time next week.
 - Buttons to edit time, delete, or manually send SMS.
 
-### Settings
-- Customize your name and message template.
-- Use dynamic variables:  
-  - `{{name}}` → client’s name  
-  - `{{time}}` → appointment time  
-  - `{{barber}}` → your name  
-- Live preview of your message.
 
 ### Navigation
 - Side navigation bar:  
@@ -53,8 +46,4 @@ This is a custom React Native + Firebase app built for barbers and hairstylists 
 - Firebase project (with Realtime DB + Auth enabled)
 - Twilio WhatsApp sender (optional)
 
-### Run the App
 
-```bash
-npm install
-npx expo start

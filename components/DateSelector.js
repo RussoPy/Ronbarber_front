@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     textAlign: 'center',
-    backgroundColor: '#808080',  // Button background color
+    backgroundColor: '#1f1e1d',  // Button background color
     color: '#fff',               // White text color
   },
 });

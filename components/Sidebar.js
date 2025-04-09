@@ -20,8 +20,10 @@ export default function Sidebar({ active, setActive, onLogout }) {
     <View style={styles.container}>
       <Image source={require('../assets/logo.png')} style={styles.logo} />
 
-      <NavButton label="Schedule" target="schedule" />
-      <NavButton label="Settings" target="settings" />
+      <NavButton label="תורים" target="schedule" />
+      <NavButton label="הגדרות" target="settings" />
+      <NavButton label="שדרוג חשבון" target="upgrade" />
+
 
       <TouchableOpacity style={[styles.navButton, styles.logoutButton]} onPress={onLogout}>
         <Text style={[styles.navText, { color: '#fff' }]}>Logout</Text>

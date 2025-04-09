@@ -34,6 +34,8 @@ export default function BarberApp({ user, username }) {
   const [sentCount, setSentCount] = useState(0);
   const [totalMessages, setTotalMessages] = useState(0);
   const [isDayLocked, setIsDayLocked] = useState(false);
+  const [messageTemplate, setMessageTemplate] = useState('');
+
   
 
   const dateKey = selectedDate.toISOString().split('T')[0];
@@ -51,7 +53,11 @@ export default function BarberApp({ user, username }) {
     onValue(infoRef, (snapshot) => {
       const data = snapshot.val();
       if (data?.name) {
-        Alert.alert("👋 Welcome", `שלום ${data.name}!`);
+        Alert.alert("👋 Welcome", `Hello ${data.name}!`);
+      }
+  
+      if (data?.template) {
+        setMessageTemplate(data.template);
       }
     }, { onlyOnce: true });
   }, []);
@@ -198,7 +204,7 @@ export default function BarberApp({ user, username }) {
 
   const openSMS = (phone, name, time) => {
     if (!phone || typeof phone !== 'string') {
-      Alert.alert("⚠️ Invalid phone", "This contact does not have a valid phone number.");
+      Alert.alert("⚠️ מספר לא תקין", "לאיש קשר אין מספר תקין");
       return;
     }
   
@@ -206,7 +212,11 @@ export default function BarberApp({ user, username }) {
       ? phone
       : '+972' + phone.replace(/^0+/, '');
   
-    const message = `שלום ${name}, תזכורת לתור שלך היום בשעה ${time}. תודה, רון הספר 💈`;
+    const message = (messageTemplate || `שלום {{name}}, תזכורת לתור שלך היום בשעה {{time}}. תודה, {{barber}} 💈`)
+      .replace('{{name}}', name)
+      .replace('{{time}}', time)
+      .replace('{{barber}}', username || 'הספר');
+  
     const url = `sms:${formattedPhone}?body=${encodeURIComponent(message)}`;
   
     Linking.openURL(url)
@@ -214,7 +224,7 @@ export default function BarberApp({ user, username }) {
         setSentMessages(prev => ({ ...prev, [phone]: true }));
       })
       .catch(err => {
-        Alert.alert('❌ Error', 'Could not open SMS app.');
+        Alert.alert('❌ שגיאה', 'לא ניתן לפתוח את אפליקציית ההודעות.');
         console.error('SMS open failed:', err);
       });
   };
@@ -262,15 +272,15 @@ export default function BarberApp({ user, username }) {
         <LockNotice onUnlock={() => setIsDayLocked(false)} />
       )}
 
-      <AppointmentList
-        appointments={appointments}
-        onEdit={editAppointmentTime}
-        onDelete={deleteAppointment}
-        onDuplicate={duplicateNextWeek}
-        onSendSMS={openSMS}
-        isDayLocked={isDayLocked}
-        sentMessages={sentMessages}
-      />
+<AppointmentList
+  appointments={appointments}
+  onEdit={editAppointmentTime}
+  onDelete={deleteAppointment}
+  onDuplicate={duplicateNextWeek}
+  onSendSMS={openSMS}
+  isDayLocked={isDayLocked}
+  sentMessages={sentMessages}
+/>
 
       <SendMessagesBar
         sentCount={sentCount}

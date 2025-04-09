@@ -1,7 +1,7 @@
-import 'react-native-gesture-handler';  // Make sure this is the very first import
+import 'react-native-gesture-handler';
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, Alert, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler'; // Import GestureHandlerRootView
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import { ref, set } from 'firebase/database';
 import { auth, database } from './firebaseConfig';
@@ -12,7 +12,9 @@ export default function App() {
   const [initializing, setInitializing] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [confirmPhone, setConfirmPhone] = useState('');
@@ -33,28 +35,33 @@ export default function App() {
 
   const handleAuth = async () => {
     if (!email || !password) {
-      Alert.alert("Error", "Email and password are required.");
+      Alert.alert("שגיאה", "חובה למלא אימייל וסיסמה.");
       return;
     }
 
     if (isRegistering) {
       if (password.length < 6) {
-        Alert.alert("Error", "Password must be at least 6 characters.");
+        Alert.alert("שגיאה", "הסיסמה חייבת להכיל לפחות 6 תווים.");
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        Alert.alert("שגיאה", "הסיסמאות לא תואמות.");
         return;
       }
 
       if (!validatePhone(phone)) {
-        Alert.alert("Error", "Phone number must be Israeli format like 0541234567.");
+        Alert.alert("שגיאה", "מספר הטלפון חייב להיות בפורמט ישראלי (למשל 0541234567).");
         return;
       }
 
       if (phone !== confirmPhone) {
-        Alert.alert("Error", "Phone numbers do not match.");
+        Alert.alert("שגיאה", "מספרי הטלפון אינם תואמים.");
         return;
       }
 
       if (!name) {
-        Alert.alert("Error", "Name is required.");
+        Alert.alert("שגיאה", "נא למלא את השם.");
         return;
       }
 
@@ -67,16 +74,16 @@ export default function App() {
         });
       } catch (err) {
         if (err.code === 'auth/email-already-in-use') {
-          Alert.alert("Error", "This email is already in use.");
+          Alert.alert("שגיאה", "כתובת האימייל הזו כבר בשימוש.");
         } else {
-          Alert.alert("Auth Error", err.message);
+          Alert.alert("שגיאה", err.message);
         }
       }
     } else {
       try {
         await signInWithEmailAndPassword(auth, email, password);
       } catch (err) {
-        Alert.alert("Login Error", err.message);
+        Alert.alert("שגיאת התחברות", err.message);
       }
     }
   };
@@ -87,38 +94,52 @@ export default function App() {
 
   if (!user) {
     return (
-      <GestureHandlerRootView style={styles.container}>  {/* Wrap everything in GestureHandlerRootView */}
-        <Text style={styles.title}>{isRegistering ? "Register" : "Login"}</Text>
+      <GestureHandlerRootView style={styles.container}>
+        <Text style={styles.appName}>FadeTime 💈</Text>
+        <Text style={styles.title}>{isRegistering ? "הרשמה" : "התחברות"}</Text>
 
         <TextInput
           style={styles.input}
-          placeholder="Email"
+          placeholder="אימייל"
           onChangeText={setEmail}
           value={email}
           keyboardType="email-address"
           autoCapitalize="none"
         />
 
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          onChangeText={setPassword}
-          value={password}
-          secureTextEntry
-        />
+        <View style={styles.passwordContainer}>
+          <TextInput
+            style={[styles.input, { flex: 1 }]}
+            placeholder="סיסמה"
+            onChangeText={setPassword}
+            value={password}
+            secureTextEntry={!showPassword}
+          />
+          <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+            <Text style={styles.eye}>{showPassword ? '🙈' : '👁️'}</Text>
+          </TouchableOpacity>
+        </View>
 
         {isRegistering && (
           <>
             <TextInput
               style={styles.input}
-              placeholder="Full Name"
+              placeholder="אימות סיסמה"
+              onChangeText={setConfirmPassword}
+              value={confirmPassword}
+              secureTextEntry={!showPassword}
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="שם מלא"
               onChangeText={setName}
               value={name}
             />
 
             <TextInput
               style={styles.input}
-              placeholder="Phone number (e.g., 0541234567)"
+              placeholder="מספר טלפון (למשל 0541234567)"
               onChangeText={setPhone}
               value={phone}
               keyboardType="phone-pad"
@@ -126,7 +147,7 @@ export default function App() {
 
             <TextInput
               style={styles.input}
-              placeholder="Confirm phone number"
+              placeholder="אימות מספר טלפון"
               onChangeText={setConfirmPhone}
               value={confirmPhone}
               keyboardType="phone-pad"
@@ -134,19 +155,18 @@ export default function App() {
           </>
         )}
 
-        {/* ✅ Remember Me Custom Checkbox */}
         <TouchableOpacity onPress={() => setRememberMe(!rememberMe)} style={styles.checkboxContainer}>
           <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]} />
-          <Text style={styles.checkboxLabel}>Remember Me</Text>
+          <Text style={styles.checkboxLabel}>זכור אותי</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.button} onPress={handleAuth}>
-          <Text style={styles.buttonText}>{isRegistering ? "Register" : "Login"}</Text>
+          <Text style={styles.buttonText}>{isRegistering ? "צור חשבון" : "התחבר"}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => setIsRegistering(!isRegistering)}>
           <Text style={styles.switch}>
-            {isRegistering ? "Already have an account? Login" : "Don't have an account? Register"}
+            {isRegistering ? "כבר יש לך חשבון? התחבר" : "אין לך חשבון? הרשם"}
           </Text>
         </TouchableOpacity>
       </GestureHandlerRootView>
@@ -158,8 +178,9 @@ export default function App() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', padding: 20, backgroundColor: '#FAF0E6' },
+  appName: { fontSize: 30, fontWeight: 'bold', textAlign: 'center', marginBottom: 10, color: '#5B2C6F' },
   title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center', color: '#2C3E50' },
-  input: { borderBottomWidth: 1, marginBottom: 15, padding: 8, borderColor: '#ccc' },
+  input: { borderBottomWidth: 1, marginBottom: 15, padding: 8, borderColor: '#ccc', color: '#2C3E50' },
   button: { backgroundColor: '#5B2C6F', padding: 12, borderRadius: 8, alignItems: 'center' },
   buttonText: { color: '#fff', fontWeight: 'bold' },
   switch: { marginTop: 12, textAlign: 'center', color: '#5B2C6F' },
@@ -178,4 +199,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#5B2C6F',
   },
   checkboxLabel: { color: '#2C3E50' },
-});  
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderColor: '#ccc',
+    marginBottom: 15,
+    paddingRight: 8,
+  },
+  eye: {
+    fontSize: 18,
+    paddingHorizontal: 8,
+    color: '#5B2C6F',
+  },
+});
