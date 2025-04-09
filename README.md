@@ -1,67 +1,60 @@
-# RonBarber App 💈
+# 💈 Barber App - SMS Reminder Scheduler
 
-A smart mobile scheduling app built for barbers.  
-Designed for daily appointment management and client reminders via SMS.
+This is a custom React Native + Firebase app built for barbers and hairstylists to manage daily appointment schedules and automatically send personalized **WhatsApp or SMS reminders** to clients each day.
 
----
+## 🚀 Features
 
-## 📱 Features
+- 📅 View and manage daily client appointments
+- 🔍 Search and select phone contacts
+- ⏰ Pick custom time for each appointment
+- 🔁 Swipe to duplicate an appointment for the same time next week
+- 🔒 Lock appointments after sending messages to prevent edits
+- ✅ Send WhatsApp or SMS reminders to each client with a personalized message template
+- 🧠 Auto-sorting appointments by time
+- 💬 Dynamic message preview and custom template editing (e.g. use `{{name}}`, `{{time}}`, `{{barber}}`)
+- 🧾 Track how many messages were sent (X/Y)
+- 🖼️ Modern and mobile-friendly UI with Tailwind-style design (via `tailwind-rn`)
 
-### ✅ Authentication & Security
-- Firebase Authentication (email & password)
-- "Remember Me" with persistent login
-- Auto-logout if user is deleted from Firebase
-- Greeting message on login: "Hello, [name]"
+## 🔧 Technologies Used
 
-### ✅ Appointment Management
-- Add/edit/delete appointments
-- Select contact from phonebook
-- Assign custom time to each appointment
-- View per-day schedule with real-time sync
-- Duplicate appointment to the same time next week
-- Lock appointment list after sending messages
-- Unlock button with warning
-- Highlight appointments that were already sent (colored green)
+- **React Native (Expo)**
+- **Firebase**: Authentication, Realtime Database
+- **Twilio**: For sending WhatsApp and SMS messages (server-side)
+- **React Native Gesture Handler**: For swipeable cards
+- **@react-native-community/datetimepicker**: Time selection
+- **Styled Components / Tailwind-RN / Bootstrap-style styling**
 
-### ✅ Messaging
-- Twilio SMS integration (paid account)
-- Send bulk messages per day
-- Auto-format Israeli phone numbers (+972)
-- Visual progress bar: `X / Y messages sent`
-- Each appointment stores: sent status, timestamp, Twilio SID
-- Fallback: Manual "Send SMS" button per client
-- Red warning prompt when trying to resend on same day
+## 📱 Screens Overview
 
-### ✅ Admin & Analytics
-- Firebase usage tracking per user
-- View total messages sent per user and per day
+### Main Schedule
+- Shows all appointments for selected date.
+- Swipe on any client to quickly add the same time next week.
+- Buttons to edit time, delete, or manually send SMS.
 
----
+### Settings
+- Customize your name and message template.
+- Use dynamic variables:  
+  - `{{name}}` → client’s name  
+  - `{{time}}` → appointment time  
+  - `{{barber}}` → your name  
+- Live preview of your message.
 
-## 🧪 Coming Soon
+### Navigation
+- Side navigation bar:  
+  - `Schedule` (main)
+  - `Settings`
+  - `Logout`
 
-### 💬 Custom Message Templates
-- Each user can define their own SMS message format
+## 🧪 Development Setup
 
-### 💳 Paywall & Subscription
-- Only paid users can use the "Send Messages" button
-- Free users send messages manually
-- Integrate PayPal or Stripe for $10/month
-- Send invoice/receipt by email
-- Admin-only override: mark any user as "paid"
+### Prerequisites
+- Node.js + Expo CLI installed globally
+- Android/iOS device or emulator
+- Firebase project (with Realtime DB + Auth enabled)
+- Twilio WhatsApp sender (optional)
 
-### 🔄 Weekly Resets (optional)
-- Option to reset all `sent: true` flags weekly
+### Run the App
 
-### 🧾 PDF Export (optional)
-- Export schedule as a styled PDF per day
-
----
-
-## 🛠️ Tech Stack
-
-- React Native with Expo
-- Firebase (Auth + Realtime Database)
-- Twilio (SMS)
-- Flask (Backend API for message triggers)
-- Render.com (deployment)
+```bash
+npm install
+npx expo start
