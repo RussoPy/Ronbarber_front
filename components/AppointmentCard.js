@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
+import { TouchableWithoutFeedback } from 'react-native';
+
 
 export default function AppointmentCard({ item, onEdit, onDelete, onSendSMS, onDuplicate, isDayLocked }) {
   const renderRightActions = () => (
@@ -13,6 +15,7 @@ export default function AppointmentCard({ item, onEdit, onDelete, onSendSMS, onD
 
   return (
     <Swipeable renderRightActions={renderRightActions} friction={2.5} rightThreshold={40}>
+      <TouchableWithoutFeedback>
       <View style={[styles.card, item.sent && styles.sentCard]}>
         <View style={styles.topRow}>
           <Text style={styles.cardText}>{item.name}</Text>
@@ -34,6 +37,7 @@ export default function AppointmentCard({ item, onEdit, onDelete, onSendSMS, onD
           </View>
         )}
       </View>
+      </TouchableWithoutFeedback>
     </Swipeable>
   );
 }

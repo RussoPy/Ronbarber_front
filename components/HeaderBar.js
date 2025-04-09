@@ -7,7 +7,7 @@ export default function HeaderBar({ username }) {
     <View style={styles.container}>
       {/* Optionally add logo here */}
       {/* <Image source={require('../assets/logo.png')} style={styles.logo} /> */}
-      {username && <Text style={styles.username}>Welcome, {username}</Text>}
+      {username && <Text style={styles.username}>שלום, {username}</Text>}
     </View>
   );
 }

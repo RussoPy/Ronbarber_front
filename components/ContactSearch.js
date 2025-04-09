@@ -30,7 +30,7 @@ export default function ContactSearch({
           style={[styles.button, { backgroundColor: '#1f1e1d' }]}
         >
           <Text style={styles.buttonText}>
-            {showContacts ? "Hide Contacts" : "Load Contacts"}
+            {showContacts ? "Hide Contacts" : "אנשי קשר"}
           </Text>
         </TouchableOpacity>
 

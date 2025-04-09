@@ -51,7 +51,7 @@ export default function BarberApp({ user, username }) {
     onValue(infoRef, (snapshot) => {
       const data = snapshot.val();
       if (data?.name) {
-        Alert.alert("👋 Welcome", `Hello ${data.name}!`);
+        Alert.alert("👋 Welcome", `שלום ${data.name}!`);
       }
     }, { onlyOnce: true });
   }, []);
@@ -91,22 +91,22 @@ export default function BarberApp({ user, username }) {
     setShowContacts(false);
   };
 
-  const confirmTimeAndSave = () => {
+  const confirmTimeAndSave = (selectedTime) => {
     try {
       const rawPhone = contactToSchedule?.phoneNumbers?.[0]?.number;
       if (!rawPhone) {
-        Alert.alert("❌ Invalid Contact", "This contact has no phone number.");
+        Alert.alert("❌ Invalid Contact", "לאיש קשר זה אין מספר");
         return;
       }
   
       const cleanPhone = normalizePhone(rawPhone);
       if (!cleanPhone) {
-        Alert.alert("⚠️ Invalid Phone", "The phone number could not be processed.");
+        Alert.alert("⚠️ Invalid Phone", "שגיאה בהוספת איש קשר");
         return;
       }
   
       const id = uuid.v4();
-      const timeStr = appointmentTime.toTimeString().slice(0, 5);
+      const timeStr = selectedTime.toTimeString().slice(0, 5); // Use selectedTime instead of appointmentTime
   
       set(ref(database, `appointments/${user.uid}/${dateKey}/${id}`), {
         name: contactToSchedule.name,
@@ -115,12 +115,13 @@ export default function BarberApp({ user, username }) {
       });
   
       setContactToSchedule(null);
-      setAppointmentTime(new Date());
+      setAppointmentTime(new Date()); // Reset for next use
     } catch (err) {
-      Alert.alert("Error", "Could not save appointment.");
+      Alert.alert("Error", "שגיאה בהוספת תור");
       console.error("confirmTimeAndSave error:", err);
     }
   };
+  
   
 
   const editAppointmentTime = (id) => {
@@ -159,7 +160,7 @@ export default function BarberApp({ user, username }) {
         text: "Send",
         onPress: () => {
           if (isDayLocked) {
-            Alert.alert("⚠️ Already Sent", "Messages were already sent for this day. Send again?", [
+            Alert.alert("⚠️ Already Sent", "ההודעות לרשימה זו כבר נשלחו, לשלוח שוב לכולם?", [
               { text: "Cancel", style: "cancel" },
               {
                 text: "Send Anyway",
@@ -249,13 +250,13 @@ export default function BarberApp({ user, username }) {
           updateAppointmentTime(time);
           setShowTimePicker(false);
         }}
-        onConfirm={() => {
-          confirmTimeAndSave();
+        onConfirm={(selectedTime) => {
+          confirmTimeAndSave(selectedTime);
           setShowTimePicker(false);
         }}
       />
 
-      <Text style={styles.subHeader}>📋 Appointments ({appointments.length})</Text>
+      <Text style={styles.subHeader}>📋 תורים ({appointments.length})</Text>
 
       {isDayLocked && (
         <LockNotice onUnlock={() => setIsDayLocked(false)} />

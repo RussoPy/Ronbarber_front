@@ -6,10 +6,10 @@ export default function LockNotice({ onUnlock }) {
   return (
     <View style={styles.noticeBox}>
       <Text style={styles.text}>
-        🔒 This day's list is locked because messages were already sent.
+        🔒 הרשימה של היום ננעלה כי ההודעות נשלחו,על מנת לשנות יש ללחוץ על כפתור פתיחת הנעילה.
       </Text>
       <TouchableOpacity onPress={onUnlock} style={styles.button}>
-        <Text style={styles.buttonText}>Unlock Editing</Text>
+        <Text style={styles.buttonText}>פתיחת נעילה</Text>
       </TouchableOpacity>
     </View>
   );

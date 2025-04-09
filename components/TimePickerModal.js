@@ -1,4 +1,3 @@
-// components/TimePickerModal.js
 import React from 'react';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
@@ -13,16 +12,23 @@ export default function TimePickerModal({
 }) {
   if (!visible) return null;
 
-  const handleChange = (e, selected) => {
+  const handleChange = (event, selected) => {
+    if (event.type === 'dismissed') {
+      onCancel();
+      return;
+    }
+
     if (selected) {
       setAppointmentTime(selected);
+
       if (editingId) {
         onEditConfirm(editingId, selected);
       } else {
-        onConfirm();
+        onConfirm(selected); // Pass the real value directly
       }
+
+      onCancel(); // Hide the picker after confirm
     }
-    onCancel();
   };
 
   return (

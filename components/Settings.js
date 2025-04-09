@@ -1,4 +1,3 @@
-// components/Settings.js
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, StyleSheet, Alert } from 'react-native';
 import { ref, get, set } from 'firebase/database';
@@ -33,20 +32,25 @@ export default function Settings({ user }) {
       name,
       template: template.trim() || `שלום {{name}}, תזכורת לתור שלך היום בשעה {{time}}. תודה, ${name} 💈`
     })
-    .then(() => Alert.alert("✅ Saved", "Your settings have been updated!"))
-    .catch(() => Alert.alert("❌ Error", "Something went wrong"));
+    .then(() => Alert.alert("✅ Saved", "ההגדרות שלך נשמרו!"))
+    .catch(() => Alert.alert("❌ Error", "משהו השתבש"));
   };
 
   useEffect(() => {
-    const sample = (template || '').replace('{{name}}', 'דוד').replace('{{time}}', '14:30');
+    const sample = (template || '')
+      .replace('{{name}}', 'דוד')
+      .replace('{{time}}', '14:30')
+      .replace('{{barber}}', name || 'הספר');
+
     setPreview(sample);
-  }, [template]);
+  }, [template, name]);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Settings</Text>
+      <Text style={styles.greeting}>שלום {name || '...'} 👋</Text>
+      <Text style={styles.header}>הגדרות</Text>
 
-      <Text style={styles.label}>Your Name</Text>
+      <Text style={styles.label}>השם שלך</Text>
       <TextInput
         value={name}
         onChangeText={setName}
@@ -54,18 +58,18 @@ export default function Settings({ user }) {
         style={styles.input}
       />
 
-      <Text style={styles.label}>Message Template</Text>
+      <Text style={styles.label}>תוכן ההודעה:</Text>
       <TextInput
         value={template}
         onChangeText={setTemplate}
-        placeholder="e.g. שלום {{name}}, תזכורת לתור שלך היום בשעה {{time}}..."
+        placeholder="e.g. שלום {{name}}, תזכורת לתור שלך היום בשעה {{time}}... תודה, {{barber}} 💈"
         style={[styles.input, { height: 80 }]}
         multiline
       />
 
       <StyledButton title="Save Settings" onPress={saveSettings} />
 
-      <Text style={styles.label}>Preview</Text>
+      <Text style={styles.label}>:</Text>
       <View style={styles.previewBox}>
         <Text style={styles.previewText}>{preview}</Text>
       </View>
@@ -74,16 +78,32 @@ export default function Settings({ user }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
-  header: { fontSize: 24, fontWeight: 'bold', color: '#2C3E50', marginBottom: 20 },
-  label: { fontSize: 16, marginBottom: 5, color: '#5B2C6F' },
+  container: { flex: 1, padding: 20, paddingTop: 60 },
+  greeting: {
+    fontSize: 18,
+    textAlign: 'center',
+    color: '#34495E',
+    marginBottom: 10,
+  },
+  header: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#2C3E50',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  label: {
+    fontSize: 16,
+    marginBottom: 5,
+    color: '#5B2C6F',
+  },
   input: {
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 8,
     padding: 10,
     marginBottom: 20,
-    color: '#2C3E50'
+    color: '#2C3E50',
   },
   previewBox: {
     backgroundColor: '#F7E7CE',
@@ -93,6 +113,6 @@ const styles = StyleSheet.create({
   },
   previewText: {
     color: '#2C3E50',
-    fontSize: 15
-  }
+    fontSize: 15,
+  },
 });
