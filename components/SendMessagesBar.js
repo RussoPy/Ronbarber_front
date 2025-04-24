@@ -1,24 +1,29 @@
-// components/SendMessagesBar.js
-import React from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet } from 'react-native';
 import StyledButton from './StyledButton';
+import SystemMessageModal from './SystemMessageModal';
 
-export default function SendMessagesBar({ sentCount, totalMessages, onSend }) {
-  const confirmSend = () => {
-    Alert.alert(
-      "'Send Messages'",
-      `Send reminders to all clients (${totalMessages})?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        { text: "Send", onPress: onSend } // Ensure onSend is called here
-      ]
-    );
-  };
+export default function SendMessagesBar({ sentCount, onSend }) {
+  const [showConfirm, setShowConfirm] = useState(false);
 
   return (
     <View style={styles.container}>
-      <StyledButton title="שלח הודעות" onPress={confirmSend} color='#4da163'
-        style={{ paddingVertical: 12, paddingHorizontal: 110, borderRadius: 25 }}  // Custom style for this button only
+      <StyledButton
+        title="שלח הודעות"
+        onPress={() => setShowConfirm(true)}
+        color="#4da163"
+        style={{ paddingVertical: 12, paddingHorizontal: 110, borderRadius: 25 }}
+      />
+
+<SystemMessageModal
+  visible={showConfirm}
+  title="שליחת הודעות"
+  message="לשלוח את כל ההודעות ברשימה?"
+  onCancel={() => setShowConfirm(false)}
+  onConfirm={() => {
+    setShowConfirm(false);
+    onSend();
+  }}
 />
     </View>
   );
@@ -28,10 +33,5 @@ const styles = StyleSheet.create({
   container: {
     marginTop: 20,
     alignItems: 'center',
-  },
-  status: {
-    marginBottom: 10,
-    fontSize: 16,
-    color: '#2C3E50',
   },
 });

@@ -32,8 +32,8 @@ export default function Settings({ user }) {
       name,
       template: template.trim() || `שלום {{name}}, תזכורת לתור שלך היום בשעה {{time}}. תודה, ${name} 💈`
     })
-    .then(() => Alert.alert("✅ Saved", "ההגדרות שלך נשמרו!"))
-    .catch(() => Alert.alert("❌ Error", "משהו השתבש"));
+      .then(() => Alert.alert("✅ נשמר בהצלחה", "ההגדרות שלך נשמרו!"))
+      .catch(() => Alert.alert("❌ שגיאה", "משהו השתבש"));
   };
 
   useEffect(() => {
@@ -61,13 +61,20 @@ export default function Settings({ user }) {
       <Text style={styles.label}>תוכן ההודעה:</Text>
       <TextInput
         value={template}
-        onChangeText={setTemplate}
+        onChangeText={(text) => {
+          if (text.length <= 160) setTemplate(text);
+        }}
         placeholder="e.g. שלום {{name}}, תזכורת לתור שלך היום בשעה {{time}}... תודה, {{barber}} 💈"
         style={[styles.input, { height: 80 }]}
         multiline
+        maxLength={160}
       />
 
-      <StyledButton title="Save Settings" onPress={saveSettings} />
+      <Text style={{ color: '#5B2C6F', textAlign: 'right' }}>
+        {template.length}/160 תווים
+      </Text>
+
+      <StyledButton title="שמור הגדרות" onPress={saveSettings} />
 
       <Text style={styles.label}>:</Text>
       <View style={styles.previewBox}>
@@ -78,7 +85,7 @@ export default function Settings({ user }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, paddingTop: 60 },
+  container: { flex: 1, padding: 20, paddingTop: 60, backgroundColor: '#FAF0E6', },
   greeting: {
     fontSize: 18,
     textAlign: 'center',
@@ -107,12 +114,17 @@ const styles = StyleSheet.create({
   },
   previewBox: {
     backgroundColor: '#F7E7CE',
-    padding: 12,
-    borderRadius: 10,
+    padding: 16,
+    borderRadius: 12,
     marginTop: 10,
+    minHeight: 200,
+    justifyContent: 'flex-start', // ✅ top-align content
   },
   previewText: {
     color: '#2C3E50',
     fontSize: 15,
+    lineHeight: 22,            // ✅ better spacing
+    flexShrink: 1,             // ✅ prevents overflow
+    flexWrap: 'wrap',          // ✅ wrap long lines
   },
 });

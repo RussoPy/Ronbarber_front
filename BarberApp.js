@@ -4,6 +4,7 @@ import { View, Alert, StyleSheet, FlatList, Text } from 'react-native';
 import { ref, onValue, set, remove, update } from 'firebase/database';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import uuid from 'react-native-uuid';
+import SystemMessageModal from './components/SystemMessageModal';
 
 import { database } from './firebaseConfig';
 import * as Contacts from 'expo-contacts';
@@ -35,10 +36,16 @@ export default function BarberApp({ user, username }) {
   const [totalMessages, setTotalMessages] = useState(0);
   const [isDayLocked, setIsDayLocked] = useState(false);
   const [messageTemplate, setMessageTemplate] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalTitle, setModalTitle] = useState('');
+  const [modalMessage, setModalMessage] = useState('');
+  const [modalConfirmAction, setModalConfirmAction] = useState(() => () => { });
+  const [modalProps, setModalProps] = useState({});
 
-  
 
-  const dateKey = selectedDate.toISOString().split('T')[0];
+
+  const dateKey = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
 
   const normalizePhone = (phone) => {
     if (!phone) return "";
@@ -48,14 +55,40 @@ export default function BarberApp({ user, username }) {
     return "+972" + cleaned;
   };
 
+  const showConfirmModal = ({
+    title,
+    message,
+    onConfirm,
+    confirmLabel = 'שלח',
+    cancelLabel = 'ביטול',
+    confirmColor = '#4da163',
+    onlyConfirm = false
+  }) => {
+    setModalTitle(title || '');
+    setModalMessage(message);
+    setModalConfirmAction(() => () => {
+      setModalVisible(false);
+      onConfirm();
+    });
+    setModalProps({ confirmLabel, cancelLabel, confirmColor, onlyConfirm });
+    setModalVisible(true);
+  };
+  
   useEffect(() => {
     const infoRef = ref(database, `users/${user.uid}/info`);
     onValue(infoRef, (snapshot) => {
       const data = snapshot.val();
       if (data?.name) {
-        Alert.alert("👋 Welcome", `Hello ${data.name}!`);
+        showConfirmModal({
+          title: "👋 ברוך הבא",
+          message: `שלום ${data.name}`,
+          confirmLabel: "המשך",
+          confirmColor: "#4da163",
+          onlyConfirm: true,
+          onConfirm: () => {},
+        });
       }
-  
+
       if (data?.template) {
         setMessageTemplate(data.template);
       }
@@ -79,8 +112,11 @@ export default function BarberApp({ user, username }) {
   const handleLoadContacts = async () => {
     const { status } = await Contacts.requestPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert("Permission denied", "Enable contacts permission.");
-      return;
+      showConfirmModal({
+        title: "אין הרשאה",
+        message: "נא לאשר גישה לאנשי קשר בהגדרות המכשיר",
+        onConfirm: () => { },
+      }); return;
     }
     const { data } = await Contacts.getContactsAsync({
       fields: [Contacts.Fields.PhoneNumbers],
@@ -101,25 +137,28 @@ export default function BarberApp({ user, username }) {
     try {
       const rawPhone = contactToSchedule?.phoneNumbers?.[0]?.number;
       if (!rawPhone) {
-        Alert.alert("❌ Invalid Contact", "לאיש קשר זה אין מספר");
-        return;
+        showConfirmModal({
+          title: "❌ איש קשר לא תקין",
+          message: "לאיש קשר זה אין מספר טלפון",
+          onConfirm: () => { },
+        }); return;
       }
-  
+
       const cleanPhone = normalizePhone(rawPhone);
       if (!cleanPhone) {
         Alert.alert("⚠️ Invalid Phone", "שגיאה בהוספת איש קשר");
         return;
       }
-  
+
       const id = uuid.v4();
       const timeStr = selectedTime.toTimeString().slice(0, 5); // Use selectedTime instead of appointmentTime
-  
+
       set(ref(database, `appointments/${user.uid}/${dateKey}/${id}`), {
         name: contactToSchedule.name,
         phone: cleanPhone,
         time: timeStr,
       });
-  
+
       setContactToSchedule(null);
       setAppointmentTime(new Date()); // Reset for next use
     } catch (err) {
@@ -127,8 +166,8 @@ export default function BarberApp({ user, username }) {
       console.error("confirmTimeAndSave error:", err);
     }
   };
-  
-  
+
+
 
   const editAppointmentTime = (id) => {
     setEditingAppointmentId(id);
@@ -160,29 +199,32 @@ export default function BarberApp({ user, username }) {
   };
 
   const sendWhatsAppReminders = () => {
-    Alert.alert("Send Messages", `Send reminders for ${dateKey}?`, [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Send",
-        onPress: () => {
-          if (isDayLocked) {
-            Alert.alert("⚠️ Already Sent", "ההודעות לרשימה זו כבר נשלחו, לשלוח שוב לכולם?", [
-              { text: "Cancel", style: "cancel" },
-              {
-                text: "Send Anyway",
-                style: "destructive",
-                onPress: actuallySendMessages
-              }
-            ]);
-          } else {
-            actuallySendMessages();
-          }
+    showConfirmModal({
+      title: "שליחת הודעות",
+      message: `אתה בטוח שאתה רוצה לשלוח הודעות לתאריך ${dateKey}?`,
+      confirmLabel: "המשך",
+      cancelLabel: "ביטול",
+      confirmColor: "#4da163",
+      onConfirm: () => {
+        if (isDayLocked) {
+          showConfirmModal({
+            title: "⚠️ הודעות כבר נשלחו",
+            message: "האם לשלוח שוב לכולם?",
+            confirmLabel: "המשך",
+            cancelLabel: "ביטול",
+            confirmColor: "#4da163",
+            onConfirm: actuallySendMessages
+          });
+        } else {
+          actuallySendMessages();
         }
       }
-    ]);
+    });
   };
+  
 
   const actuallySendMessages = async () => {
+    setIsSending(true); // ✅ Show overlay
     try {
       const response = await fetch("https://barber-back-ng32.onrender.com/send_messages", {
         method: "POST",
@@ -197,32 +239,33 @@ export default function BarberApp({ user, username }) {
       if (response.ok) {
         setSentCount(result.sent || 0);
         setTotalMessages(result.total || 0);
-        Alert.alert("✅ Done", result.message);
+        Alert.alert("✅ בוצע", result.message);
       } else {
-        Alert.alert("❌ Error", result.error || "Failed to send.");
+        Alert.alert("❌ שגיאה", result.error || "שליחה נכשלה.");
       }
     } catch (error) {
-      Alert.alert("❌ Error", "Could not connect to server.");
+      Alert.alert("❌ שגיאה", "לא ניתן להתחבר לשרת.");
+    } finally {
+      setIsSending(false); // ✅ Hide overlay no matter what
     }
   };
-
   const openSMS = (phone, name, time) => {
     if (!phone || typeof phone !== 'string') {
       Alert.alert("⚠️ מספר לא תקין", "לאיש קשר אין מספר תקין");
       return;
     }
-  
+
     const formattedPhone = phone.startsWith('+')
       ? phone
       : '+972' + phone.replace(/^0+/, '');
-  
+
     const message = (messageTemplate || `שלום {{name}}, תזכורת לתור שלך היום בשעה {{time}}. תודה, {{barber}} 💈`)
       .replace('{{name}}', name)
       .replace('{{time}}', time)
       .replace('{{barber}}', username || 'הספר');
-  
+
     const url = `sms:${formattedPhone}?body=${encodeURIComponent(message)}`;
-  
+
     Linking.openURL(url)
       .then(() => {
         setSentMessages(prev => ({ ...prev, [phone]: true }));
@@ -276,26 +319,69 @@ export default function BarberApp({ user, username }) {
         <LockNotice onUnlock={() => setIsDayLocked(false)} />
       )}
 
-<AppointmentList
-  appointments={appointments}
-  onEdit={editAppointmentTime}
-  onDelete={deleteAppointment}
-  onDuplicate={duplicateNextWeek}
-  onSendSMS={openSMS}
-  isDayLocked={isDayLocked}
-  sentMessages={sentMessages}
-/>
+      <AppointmentList
+        appointments={appointments}
+        onEdit={editAppointmentTime}
+        onDelete={deleteAppointment}
+        onDuplicate={duplicateNextWeek}
+        onSendSMS={openSMS}
+        isDayLocked={isDayLocked}
+        sentMessages={sentMessages}
+      />
 
       <SendMessagesBar
         sentCount={sentCount}
         totalMessages={totalMessages}
         onSend={sendWhatsAppReminders}
       />
+      {isSending && (
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingBox}>
+            <Text style={styles.loadingText}>הודעות נשלחות, נא להמתין...</Text>
+          </View>
+        </View>
+      )}
+      <SystemMessageModal
+  visible={modalVisible}
+  title={modalTitle}
+  message={modalMessage}
+  onCancel={() => setModalVisible(false)}
+  onConfirm={modalConfirmAction}
+  confirmLabel={modalProps.confirmLabel}
+  cancelLabel={modalProps.cancelLabel}
+  confirmColor={modalProps.confirmColor}
+  onlyConfirm={modalProps.onlyConfirm}
+
+/>
     </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 9999,
+  },
+  loadingBox: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 10,
+  },
+  loadingText: {
+    fontSize: 18,
+    color: '#333',
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
   container: { padding: 20, flex: 1, backgroundColor: '#FAF0E6' },
   subHeader: { fontSize: 20, fontWeight: 'bold', marginTop: 20, color: '#2C3E50', marginBottom: 10 },
 });

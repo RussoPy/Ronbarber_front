@@ -9,6 +9,7 @@ export default function TimePickerModal({
   onCancel,
   editingId,
   onEditConfirm
+  
 }) {
   if (!visible) return null;
 
@@ -34,9 +35,10 @@ export default function TimePickerModal({
   return (
     <DateTimePicker
       mode="time"
-      is24Hour
+      is24Hour={true}
       value={appointmentTime}
       onChange={handleChange}
+      display="spinner"
     />
   );
 }
