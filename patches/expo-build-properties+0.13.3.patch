@@ -1,0 +1,87 @@
+diff --git a/node_modules/expo-build-properties/build/ios.js b/node_modules/expo-build-properties/build/ios.js
+index 68d2b55..e27d324 100644
+--- a/node_modules/expo-build-properties/build/ios.js
++++ b/node_modules/expo-build-properties/build/ios.js
+@@ -1,14 +1,20 @@
+ "use strict";
+ Object.defineProperty(exports, "__esModule", { value: true });
+ exports.withIosDeploymentTarget = exports.withIosBuildProperties = void 0;
++
+ const config_plugins_1 = require("expo/config-plugins");
+ const { createBuildPodfilePropsConfigPlugin } = config_plugins_1.IOSConfig.BuildProperties;
+-exports.withIosBuildProperties = createBuildPodfilePropsConfigPlugin([
++
++const withIosBuildProperties = createBuildPodfilePropsConfigPlugin([
+     {
+         propName: 'newArchEnabled',
+         propValueGetter: (config) => {
+             if (config.ios?.newArchEnabled !== undefined) {
+-                config_plugins_1.WarningAggregator.addWarningIOS('withIosBuildProperties', 'ios.newArchEnabled is deprecated, use app config `newArchEnabled` instead.', 'https://docs.expo.dev/versions/latest/config/app/#newarchenabled');
++                config_plugins_1.WarningAggregator.addWarningIOS(
++                    'withIosBuildProperties',
++                    'ios.newArchEnabled is deprecated, use app config `newArchEnabled` instead.',
++                    'https://docs.expo.dev/versions/latest/config/app/#newarchenabled'
++                );
+             }
+             return config.ios?.newArchEnabled?.toString();
+         },
+@@ -34,29 +40,50 @@ exports.withIosBuildProperties = createBuildPodfilePropsConfigPlugin([
+         propValueGetter: (config) => (config.ios?.privacyManifestAggregationEnabled ?? true).toString(),
+     },
+ ], 'withIosBuildProperties');
++
++exports.withIosBuildProperties = withIosBuildProperties;
++
++// ✅ PATCH START: Inject use_modular_headers!
++const originalPlugin = withIosBuildProperties._configPlugin || withIosBuildProperties;
++withIosBuildProperties._configPlugin = function patchedPlugin(config, props, options = {}) {
++    const modify = options.modifyPodfile;
++    options.modifyPodfile = function (podfile) {
++        podfile.contents = podfile.contents.replace(/^platform :ios.*$/m, match => `use_modular_headers!\n${match}`);
++        return modify ? modify(podfile) : podfile;
++    };
++    return originalPlugin(config, props, options);
++};
++// ✅ PATCH END
++
+ const withIosDeploymentTarget = (config, props) => {
+     const deploymentTarget = props.ios?.deploymentTarget;
+     if (!deploymentTarget) {
+         return config;
+     }
++
+     // Updates deployment target in app xcodeproj
+     config = withIosDeploymentTargetXcodeProject(config, { deploymentTarget });
+-    // Updates deployement target in Podfile (Pods project)
++
++    // Updates deployment target in Podfile (Pods project)
+     config = withIosDeploymentTargetPodfile(config, props);
++
+     return config;
+ };
+ exports.withIosDeploymentTarget = withIosDeploymentTarget;
++
+ const withIosDeploymentTargetXcodeProject = (config, props) => {
+     return (0, config_plugins_1.withXcodeProject)(config, (config) => {
+         config.modResults = updateDeploymentTargetXcodeProject(config.modResults, props.deploymentTarget);
+         return config;
+     });
+ };
++
+ function updateDeploymentTargetXcodeProject(project, deploymentTarget) {
+     const { Target } = config_plugins_1.IOSConfig;
+     const targetBuildConfigListIds = Target.getNativeTargets(project)
+         .filter(([_, target]) => Target.isTargetOfType(target, Target.TargetType.APPLICATION))
+         .map(([_, target]) => target.buildConfigurationList);
++
+     for (const buildConfigListId of targetBuildConfigListIds) {
+         for (const [, configurations] of config_plugins_1.IOSConfig.XcodeUtils.getBuildConfigurationsForListId(project, buildConfigListId)) {
+             const { buildSettings } = configurations;
+@@ -67,6 +94,7 @@ function updateDeploymentTargetXcodeProject(project, deploymentTarget) {
+     }
+     return project;
+ }
++
+ const withIosDeploymentTargetPodfile = createBuildPodfilePropsConfigPlugin([
+     {
+         propName: 'ios.deploymentTarget',

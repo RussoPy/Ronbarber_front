@@ -7,14 +7,27 @@
     "orientation": "portrait",
     "icon": "./assets/icons.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+"plugins": [
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useModularHeaders": true
+          }
+        }
+      ]
+    ],    "newArchEnabled": true,
     "splash": {
       "image": "./assets/icons.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.galrusso.barberreminder",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "versionCode": 2,
